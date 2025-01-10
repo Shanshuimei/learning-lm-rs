@@ -167,7 +167,13 @@ fn mlp(
     rms_w: &Tensor<f32>,
     eps: f32,
 ) {
-    todo!("Implement mlp");
+    // 对输入进行RMS归一化
+    OP::rms_norm(hidden_states, residual, rms_w, eps);
+    // 计算gate和up投影
+    OP::matmul_transb(gate, 0., hidden_states, w_gate, 1.0);
+    OP::matmul_transb(up, 0., hidden_states, w_up, 1.0);
+    OP::swiglu(up, gate);
+    OP::matmul_transb(residual, 1., up, w_down, 1.);
 }
 
 #[test]

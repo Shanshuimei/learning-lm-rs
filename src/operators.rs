@@ -116,8 +116,35 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 // - w: 权重张量
 // - epsilon: 数值稳定性参数
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+    // 获取输入张量的形状
+    let shape = x.shape();
+    // 确保输入张量和输出张量的形状相同
+    assert!(shape == y.shape());
+    // 确保权重张量的大小等于输入张量的最后一个维度。
+    assert!(w.size() == shape[shape.len() - 1]);
+    // 获取输入张量的最后一个维度
+    let n = shape[shape.len() - 1];
+    // 计算每个batch的大小
+    let batch_size = x.size() / n;
+    // 获取输入张量、权重张量和输出张量的数据
+    let x_data = x.data();
+    let w_data = w.data();
+    let y_data = unsafe { y.data_mut() };
+    // 遍历每个batch
+    for i in 0..batch_size {
+        // 计算当前batch的偏移量
+        let offset = i * n;
+        // 计算输入张量的平方和
+        let sum_of_squares: f32 = (0..n).map(|j| x_data[offset + j].powi(2)).sum();
+        // 计算均方根
+        let norm = (sum_of_squares / n as f32 + epsilon).sqrt();
+        // 计算输出张量
+        for j in 0..n {
+            y_data[offset + j] = w_data[j] * x_data[offset + j] / norm;
+        }
+    }
 }
+    
 
 // swiglu: SwiGLU激活函数
 // 计算 y = silu(x) * y
@@ -142,7 +169,37 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
 // matmul_transb: 矩阵乘法（第二个矩阵转置）
 // 计算: C = beta * C + alpha * A @ B^T
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+    // 获取输入张量的形状
+    let a_shape = a.shape();
+    let b_shape = b.shape();
+    let c_shape = c.shape();
+    
+    // 确保输入张量是二维的
+    assert!(a_shape.len() == 2 && b_shape.len() == 2 && c_shape.len() == 2);
+    
+    // 确保输入张量的形状符合矩阵乘法的要求
+    assert!(a_shape[1] == b_shape[1]);
+    assert!(a_shape[0] == c_shape[0]);
+    assert!(b_shape[0] == c_shape[1]);
+    
+    let m = a_shape[0];
+    let k = a_shape[1];
+    let n = b_shape[0];
+    
+    let a_data = a.data();
+    let b_data = b.data();
+    let c_data = unsafe { c.data_mut() };
+    
+    // 计算 C = alpha * A * B^T + beta * C
+    for i in 0..m {
+        for j in 0..n {
+            let mut sum = 0.0;
+            for p in 0..k {
+                sum += a_data[i * k + p] * b_data[j * k + p];
+            }
+            c_data[i * n + j] = alpha * sum + beta * c_data[i * n + j];
+        }
+    }
 }
 
 // dot: 计算两个张量的点积
