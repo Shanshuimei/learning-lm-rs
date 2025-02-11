@@ -24,5 +24,7 @@ fn main() {
         30,
         1.,
     );
-    println!("{}", tokenizer.decode(&output_ids, true).unwrap());
+    // for token_id in output_ids {
+    //     print!("{}", tokenizer.decode(&[token_id], true).unwrap());
+    // }
 }

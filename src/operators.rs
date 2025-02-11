@@ -119,17 +119,29 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     // 获取输入张量的形状
     let shape = x.shape();
     // 确保输入张量和输出张量的形状相同
-    assert!(shape == y.shape());
-    // 确保权重张量的大小等于输入张量的最后一个维度。
+    // println!("Expected shape: {:?}", shape);
+    // println!("Actual shape: {:?}", y.shape());
+    
+    // 如果输入是一维的，而输出是二维的 [1, n]，则将输入视为 [1, n]
+    if shape.len() == 1 && y.shape().len() == 2 && y.shape()[0] == 1 {
+        assert!(shape[0] == y.shape()[1]);
+    } else {
+        assert!(shape == y.shape());
+    }
+    
+    // 确保权重张量的大小等于输入张量的最后一个维度
     assert!(w.size() == shape[shape.len() - 1]);
+    
     // 获取输入张量的最后一个维度
     let n = shape[shape.len() - 1];
     // 计算每个batch的大小
     let batch_size = x.size() / n;
+    
     // 获取输入张量、权重张量和输出张量的数据
     let x_data = x.data();
     let w_data = w.data();
     let y_data = unsafe { y.data_mut() };
+    
     // 遍历每个batch
     for i in 0..batch_size {
         // 计算当前batch的偏移量
